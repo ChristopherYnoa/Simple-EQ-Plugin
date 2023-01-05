@@ -111,6 +111,22 @@ void SimpleEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     leftChain.prepare(spec);
     rightChain.prepare(spec);
 
+    auto chainSettings = getChainSettings(apvts);
+
+    //IRR::Coefficients are Reference-counted objects that own a juce::Array<float>.
+    //These helper functions return instances allocated on the heap.
+    //To copy the underlying coefficients array they must be dereferenced 50:40
+
+
+    //produces static coefficients for the peak filter
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
+                                   //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
+        makePeakFilter(sampleRate, chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+
+    
+    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+
 }
 
 void SimpleEQAudioProcessor::releaseResources()
@@ -166,6 +182,18 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    auto chainSettings = getChainSettings(apvts);
+
+
+    //produces static coefficients for the peak filter
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
+        //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
+        makePeakFilter(getSampleRate(), chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+
+
+    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+
     juce::dsp::AudioBlock<float> block(buffer);
 
     auto leftBlock = block.getSingleChannelBlock(0);
@@ -207,6 +235,36 @@ void SimpleEQAudioProcessor::setStateInformation (const void* data, int sizeInBy
 }
 
 
+//Purpose: Helper function that returns the parameter settings
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts) {
+
+    ChainSettings settings;
+
+    //low cut settings
+    settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
+    settings.lowCutSlope = apvts.getRawParameterValue("LowCut Slope")->load();
+
+    //high cut settings
+    settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
+    settings.highCutSlope = apvts.getRawParameterValue("HighCut Slope")->load();
+
+    //peak settings
+    settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
+    settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
+    settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
+    
+    
+
+
+
+
+
+    return settings;
+
+}
+
+
+
 //responsible for the low cut filter
 //Purpose: To return the layout with the lowcut, highcut, and mid freq
 juce::AudioProcessorValueTreeState::ParameterLayout
@@ -220,18 +278,18 @@ SimpleEQAudioProcessor::createParameterLayout() {
     //Low Cut Frequency
     //juce::NormalisableRange<datatype>(lowvalue, highvalue, intervalchangevalue, skewfactor (<1 lowerend skew focus, >1 higherend skew focus, 1 no skew))
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq", juce::NormalisableRange<float>(
-        20.f, 20000.f, 1., 1.f), 20.f));
+        20.f, 20000.f, 1., 0.40f), 20.f));
 
 
     //High Cut Frequency
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>(
-        20.f, 20000.f, 1., 1.f), 15000.f));
+        20.f, 20000.f, 1., 0.40f), 15000.f));
 
 
     //Mid Frequency
     //juce::NormalisableRange<datatype>(lowvalue, highvalue, intervalchangevalue, skewfactor (<1 lowerend skew focus, >1 higherend skew focus, 1 no skew))
     layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq", "Peak Freq", juce::NormalisableRange<float>(
-        20.f, 20000.f, 1., 1.f), 2000.f));
+        20.f, 20000.f, 1., 0.40f), 2000.f));
 
 
     //Mid Band Gain
