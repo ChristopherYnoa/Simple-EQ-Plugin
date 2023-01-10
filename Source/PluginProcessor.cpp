@@ -120,14 +120,15 @@ void SimpleEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     //To copy the underlying coefficients array they must be dereferenced 50:40
 
     
-    //produces static coefficients for the peak filter
-    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
-                                   //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
-        makePeakFilter(sampleRate, chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    updatePeakFilter(chainSettings);
+    ////produces static coefficients for the peak filter
+    //auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
+    //                               //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
+    //    makePeakFilter(sampleRate, chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
 
-    
-    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
-    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    //
+    //*leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    //*rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 
 
     /*
@@ -318,15 +319,16 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
 
     auto chainSettings = getChainSettings(apvts);
 
+    updatePeakFilter(chainSettings);
 
-    //produces static coefficients for the peak filter
-    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
-        //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
-        makePeakFilter(getSampleRate(), chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    // //produces static coefficients for the peak filter
+    //auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
+    //    //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
+    //    makePeakFilter(getSampleRate(), chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
 
 
-    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
-    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    //*leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    //*rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 
     auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, getSampleRate(), 2 * (chainSettings.lowCutSlope + 1));
 
@@ -516,6 +518,27 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts) {
 
 }
 
+void SimpleEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
+
+    //produces static coefficients for the peak filter
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::
+        //peak frequency        //peak quality            //peak gain must be converted from gain to decibels using juce::Decibels::decibelsToGain function
+        makePeakFilter(getSampleRate(), chainSettings.peakFreq, chainSettings.peakQuality, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+
+
+  //  *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+  //  *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+
+    updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+    updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+}
+
+void SimpleEQAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients &replacements) {
+
+    *old = *replacements;
+
+}
 
 
 //responsible for the low cut filter
