@@ -53,6 +53,20 @@ private:
         lowCutSlopeSlider,
         highCutSlopeSlider;
 
+
+    //setting typename alias to connect GUI sliders to the parameters
+    using APVTS = juce::AudioProcessorValueTreeState;
+    using Attachment = APVTS::SliderAttachment;
+
+    Attachment peakFreqSliderAttachment,
+        peakGainSliderAttachment,
+        peakQualitySliderAttachment,
+        lowCutFreqSliderAttachment,
+        highCutFreqSliderAttachment,
+        lowCutSlopeSliderAttachment,
+        highCutSlopeSliderAttachment;
+
+
     //vector to store slider values
     std::vector<juce::Component*> getComps();
 
