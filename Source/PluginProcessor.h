@@ -52,6 +52,119 @@ void updateCoefficients(Coefficients& old, const Coefficients& replacements);
 Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
 
+//function for refactor updateCutFilter
+template<int Index, typename ChainType, typename CoefficientType>
+void update(ChainType& chain, const CoefficientType& coefficients) {
+
+    updateCoefficients(chain.template get<Index>().coefficients, coefficients[Index]);
+    chain.template setBypassed<Index>(false);
+}
+
+
+//refactor for low and high cut filters
+template<typename ChainType, typename CoefficientType>
+void updateCutFilter(ChainType& chain, const CoefficientType& coefficients, const Slope& slope) {
+
+    // auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, getSampleRate(), 2 * (chainSettings.lowCutSlope + 1));
+
+
+     //LEFT CHAIN
+     //auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
+
+     //initializing all four positions of left low cut filter to bypassed
+    chain.template setBypassed<0>(true);
+    chain.template setBypassed<1>(true);
+    chain.template setBypassed<2>(true);
+    chain.template setBypassed<3>(true);
+
+    switch (slope) {
+
+    case Slope_48: {
+
+        update<3>(chain, coefficients);
+
+    }
+
+    case Slope_36: {
+
+        update<2>(chain, coefficients);
+
+    }
+
+    case Slope_24: {
+
+        update<1>(chain, coefficients);
+    }
+
+    case Slope_12: {
+
+        update<0>(chain, coefficients);
+    }
+                 //case Slope_12: {
+
+                 //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
+                 //    leftLowCut.setBypassed<0>(false);
+                 //    break;
+
+                 //}
+
+                 //case Slope_24: {
+
+                 //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
+                 //    leftLowCut.setBypassed<0>(false);
+                 //    *leftLowCut.get<1>().coefficients = *cutCoefficients[2];
+                 //    leftLowCut.setBypassed<1>(false);
+                 //    break;
+                 //}
+
+                 //case Slope_36: {
+
+                 //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
+                 //    leftLowCut.setBypassed<0>(false);
+                 //    *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
+                 //    leftLowCut.setBypassed<1>(false);
+                 //    *leftLowCut.get<2>().coefficients = *cutCoefficients[2];
+                 //    leftLowCut.setBypassed<2>(false);
+                 //    break;
+
+                 //}
+
+                 //case Slope_48: {
+
+                 //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
+                 //    leftLowCut.setBypassed<0>(false);
+                 //    *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
+                 //    leftLowCut.setBypassed<1>(false);
+                 //    *leftLowCut.get<2>().coefficients = *cutCoefficients[2];
+                 //    leftLowCut.setBypassed<2>(false);
+                 //    *leftLowCut.get<3>().coefficients = *cutCoefficients[3];
+                 //    leftLowCut.setBypassed<3>(false);
+                 //    break;
+
+                 //}
+
+
+    }
+
+}
+
+
+inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate) {
+
+    return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, 
+        sampleRate, 
+        2 * (chainSettings.lowCutSlope + 1));
+
+}
+
+inline auto makeHighCutFilter(const ChainSettings& chainSettings, double sampleRate) {
+
+    return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq,
+        sampleRate,
+        2 * (chainSettings.highCutSlope + 1));
+
+}
+
 //==============================================================================
 /**
 */
@@ -111,101 +224,7 @@ private:
 
 
 
-    //function for refactor updateCutFilter
-    template<int Index, typename ChainType, typename CoefficientType>
-    void update(ChainType& chain, const CoefficientType& coefficients) {
-
-        updateCoefficients(chain.template get<Index>().coefficients, coefficients[Index]);
-        chain.template setBypassed<Index>(false);
-    }
-
-
-    //refactor for low and high cut filters
-    template<typename ChainType, typename CoefficientType>
-    void updateCutFilter(ChainType& chain, const CoefficientType& coefficients, const Slope& slope) {
-
-       // auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, getSampleRate(), 2 * (chainSettings.lowCutSlope + 1));
-
-
-        //LEFT CHAIN
-        //auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-
-        //initializing all four positions of left low cut filter to bypassed
-        chain.template setBypassed<0>(true);
-        chain.template setBypassed<1>(true);
-        chain.template setBypassed<2>(true);
-        chain.template setBypassed<3>(true);
-
-        switch (slope) {
-
-        case Slope_48: {
-            
-            update<3>(chain, coefficients);
-
-        }
-
-        case Slope_36: {
-
-            update<2>(chain, coefficients);
-
-        }
-
-        case Slope_24: {
-
-            update<1>(chain, coefficients);
-        }
-
-        case Slope_12: {
-
-            update<0>(chain, coefficients);
-        }
-        //case Slope_12: {
-
-        //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-        //    leftLowCut.setBypassed<0>(false);
-        //    break;
-
-        //}
-
-        //case Slope_24: {
-
-        //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-        //    leftLowCut.setBypassed<0>(false);
-        //    *leftLowCut.get<1>().coefficients = *cutCoefficients[2];
-        //    leftLowCut.setBypassed<1>(false);
-        //    break;
-        //}
-
-        //case Slope_36: {
-
-        //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-        //    leftLowCut.setBypassed<0>(false);
-        //    *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
-        //    leftLowCut.setBypassed<1>(false);
-        //    *leftLowCut.get<2>().coefficients = *cutCoefficients[2];
-        //    leftLowCut.setBypassed<2>(false);
-        //    break;
-
-        //}
-
-        //case Slope_48: {
-
-        //    *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-        //    leftLowCut.setBypassed<0>(false);
-        //    *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
-        //    leftLowCut.setBypassed<1>(false);
-        //    *leftLowCut.get<2>().coefficients = *cutCoefficients[2];
-        //    leftLowCut.setBypassed<2>(false);
-        //    *leftLowCut.get<3>().coefficients = *cutCoefficients[3];
-        //    leftLowCut.setBypassed<3>(false);
-        //    break;
-
-        //}
-
-
-        }
-
-    }
+    
 
     void updateLowCutFilters(const ChainSettings& chainSettings);
     void updateHighCutFilters(const ChainSettings& chainSettings);
