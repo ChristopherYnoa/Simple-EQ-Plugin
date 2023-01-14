@@ -156,6 +156,24 @@ void SimpleEQAudioProcessorEditor::resized()
 
 }
 
+//sets parametersChanged to true
+void SimpleEQAudioProcessorEditor::parameterValueChanged(int parameterIndex, float newValue) {
+
+    parametersChanged.set(true);
+
+}
+
+//checks if parametersChanged is set to true, if so update monochain and signal gui repaint
+void SimpleEQAudioProcessorEditor::timerCallback() {
+
+    if (parametersChanged.compareAndSetBool(false, true)) {
+
+        
+
+    }
+
+}
+
 //returns vector with slider components
 std::vector<juce::Component*> SimpleEQAudioProcessorEditor::getComps() {
 
