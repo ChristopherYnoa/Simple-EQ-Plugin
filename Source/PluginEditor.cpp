@@ -88,8 +88,9 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
 //retrieves the bounds set for the sliders
 juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const {
 
-    //return getLocalBounds();
+    
 
+    //creating circular boxes adjusts the ellipses to appear as circles
     auto bounds = getLocalBounds();
 
     auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
