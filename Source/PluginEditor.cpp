@@ -30,25 +30,44 @@ void LookAndFeel::drawRotarySlider(juce::Graphics & g,
     g.setColour(Colour(205u, 205u, 205u));
     g.drawEllipse(bounds, 2.f);
 
-    auto center = bounds.getCentre();
+    if (auto* rswl = dynamic_cast<RotarySliderWithLabels*>(&slider)) {
 
-    Path p;
+        auto center = bounds.getCentre();
 
-    Rectangle<float> r;
-    r.setLeft(center.getX() - 2);
-    r.setRight(center.getX() + 2);
-    r.setTop(bounds.getY());
-    r.setBottom(center.getY());
+        Path p;
 
-    p.addRectangle(r);
+        Rectangle<float> r;
+        r.setLeft(center.getX() - 2);
+        r.setRight(center.getX() + 2);
+        r.setTop(bounds.getY());
+        r.setBottom(center.getY() - rswl->getTextHeight() * 1.5);
 
-    jassert(rotaryStartAngle < rotaryEndAngle);
+        p.addRoundedRectangle(r, 2.f);
 
-    auto sliderAngRad = jmap(sliderPosProportional, 0.f, 1.f, rotaryStartAngle, rotaryEndAngle);
+        //rotation stuff
+        jassert(rotaryStartAngle < rotaryEndAngle);
 
-    p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
+        auto sliderAngRad = jmap(sliderPosProportional, 0.f, 1.f, rotaryStartAngle, rotaryEndAngle);
 
-    g.fillPath(p);
+        p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
+
+        g.fillPath(p);
+
+        //text displayed next to sliders
+        g.setFont(rswl->getTextHeight());
+        auto text = rswl->getDisplayString();
+        auto strWidth = g.getCurrentFont().getStringWidth(text);
+
+        r.setSize(strWidth + 4, rswl->getTextHeight() + 2);
+        r.setCentre(center);
+
+        g.setColour(Colours::black);
+        g.fillRect(r);
+
+        g.setColour(Colours::white);
+        g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
+
+    }
 }
 
 
@@ -105,6 +124,12 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const {
 
 }
 
+
+
+juce::String RotarySliderWithLabels::getDisplayString() const {
+
+    return juce::String(getValue());
+}
 
 //  ==============================================================================
 
