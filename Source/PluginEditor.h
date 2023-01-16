@@ -85,6 +85,8 @@ private:
 
     MonoChain monoChain;
 
+    void updateChain();
+
 };
 
 
