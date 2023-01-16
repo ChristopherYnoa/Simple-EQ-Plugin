@@ -425,6 +425,7 @@ void ResponseCurveComponent::resized() {
     const int fontHeight = 10;
     g.setFont(fontHeight);
 
+    //adding the frequency markers at the top of the curve
     for (int i = 0; i < freqs.size(); ++i) {
 
         auto f = freqs[i];
@@ -454,6 +455,28 @@ void ResponseCurveComponent::resized() {
         g.drawFittedText(str, r, juce::Justification::centred, 1);
 
     }
+    //adding gain markers on the side of the grid
+    for (auto gDb : gain) {
+
+        auto y = jmap(gDb, -24.f, 24.f, float(bottom), float(top));
+        
+        String str;
+        if (gDb > 0)
+            str << "";
+        str << gDb;
+
+        auto textWidth = g.getCurrentFont().getStringWidth(str);
+
+        Rectangle<int> r;
+        r.setSize(textWidth, fontHeight);
+        r.setX(getWidth() - textWidth);
+        r.setCentre(r.getCentreX(), y);
+
+        g.setColour(gDb == 0.f ? Colour(43u, 192u, 23u) :Colours::dimgrey);
+
+        g.drawFittedText(str, r, juce::Justification::centred, 1);
+        
+    }
 
 }
 
@@ -468,8 +491,8 @@ juce::Rectangle<int> ResponseCurveComponent::getRenderArea() {
 
         bounds.removeFromTop(12);
         bounds.removeFromBottom(2);
-        bounds.removeFromLeft(20);
-        bounds.removeFromRight(20);
+        bounds.removeFromLeft(16);
+        bounds.removeFromRight(16);
 
     return bounds;
 
