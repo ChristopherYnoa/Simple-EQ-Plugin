@@ -78,6 +78,7 @@ struct ResponseCurveComponent : juce::Component,
     void timerCallback() override;
 
     void paint(juce::Graphics& g) override;
+    void resized() override;
 
 private:
     SimpleEQAudioProcessor& audioProcessor;
@@ -86,6 +87,14 @@ private:
     MonoChain monoChain;
 
     void updateChain();
+
+    //background image for the frequency curve
+    juce::Image background;
+    
+    //returns the area we will draw background grid and response curve in
+    juce::Rectangle<int> getRenderArea();
+
+    juce::Rectangle<int> getAnalysisArea();
 
 };
 
