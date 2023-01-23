@@ -205,13 +205,28 @@ juce::String RotarySliderWithLabels::getDisplayString() const {
 //  ==============================================================================
 
 
-ResponseCurveComponent::ResponseCurveComponent(SimpleEQAudioProcessor& p) : audioProcessor(p) {
+ResponseCurveComponent::ResponseCurveComponent(SimpleEQAudioProcessor& p) : 
+    audioProcessor(p),
+    leftChannelFifo(&audioProcessor.leftChannelFifo)
+
+{
 
     const auto& params = audioProcessor.getParameters();
     for (auto param : params) {
 
         param->addListener(this);
     }
+
+    /*
+    
+    48000 / 2048 = 23hZ
+    higher order translates to more resolution particularly in the high end
+    
+    */
+
+    leftChannelFFTDataGenerator.changeOrder(FFTOrder::order2048);
+    monoBuffer.setSize(1, leftChannelFFTDataGenerator.getFFTSize());
+
     updateChain();
 
     startTimerHz(60);
@@ -236,15 +251,74 @@ void ResponseCurveComponent::parameterValueChanged(int parameterIndex, float new
 //checks if parametersChanged is set to true, if so update monochain and signal gui repaint
 void ResponseCurveComponent::timerCallback() {
 
+    juce::AudioBuffer<float> tempIncomingBuffer;
+
+    while (leftChannelFifo->getNumCompleteBuffersAvailable() > 0) {
+
+        if (leftChannelFifo->getAudioBuffer(tempIncomingBuffer)) {
+
+            auto size = tempIncomingBuffer.getNumSamples();
+
+            juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0),
+                monoBuffer.getReadPointer(0, size),
+                monoBuffer.getNumSamples() - size);
+
+            juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
+                tempIncomingBuffer.getReadPointer(0, 0), size);
+
+            leftChannelFFTDataGenerator.produceFFTDataForRedering(monoBuffer, -48.f);
+        }
+
+    }
+
+    /*
+    if there are FFT data buffers to pul
+        if we can pull a buffer
+            generate a path
+    */
+
+    const auto fftBounds = getAnalysisArea().toFloat();
+    const auto fftSize = leftChannelFFTDataGenerator.getFFTSize();
+
+    //bin width: 48000 / 2048 = 23hZ
+
+    const auto binWidth = audioProcessor.getSampleRate() / (double)fftSize;
+
+    while (leftChannelFFTDataGenerator.getNumAvailableFFTDataBlocks() > 0) {
+
+        std::vector<float> fftData;
+        if (leftChannelFFTDataGenerator.getFFTData(fftData)) {
+
+            pathProducer.generatePath(fftData, fftBounds, fftSize, binWidth, -48.f);
+
+        }
+
+    }
+    /*
+    while there are paths that can be pulled
+        pull as many as we can
+            display the most recent path
+    */
+
+    while (pathProducer.getNumPathsAvailable()) {
+
+        pathProducer.getPath(leftChannelFFTPath);
+
+    }
+
+
+
     if (parametersChanged.compareAndSetBool(false, true)) {
 
         updateChain();
        
 
         //signal a repaint
-        repaint();
+        //repaint();
 
     }
+
+    repaint();
 
 }
 
@@ -352,6 +426,9 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 
         responseCurve.lineTo(responseArea.getX() + i, map(mags[i]));
     }
+    //spectrum analyzer
+    g.setColour(Colour(50u, 147u, 111u));
+    g.strokePath(leftChannelFFTPath, PathStrokeType(1.f));
 
     g.setColour(Colours::blue);
     g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
