@@ -289,7 +289,30 @@ private:
 
 //==============================================================================
 struct PowerButton : juce::ToggleButton { };
-struct AnalyzerButton : juce::ToggleButton { };
+struct AnalyzerButton : juce::ToggleButton { 
+
+    void resized() override {
+
+        auto bounds = getLocalBounds();
+        auto insertRect = bounds.reduced(4);
+
+        randomPath.clear();
+
+        juce::Random r;
+
+        randomPath.startNewSubPath(insertRect.getX(),
+            insertRect.getY() + insertRect.getHeight() * r.nextFloat());
+
+        for (auto x = insertRect.getX() + 1; x < insertRect.getRight(); x += 2) {
+
+            randomPath.lineTo(x, insertRect.getY() + insertRect.getHeight() * r.nextFloat());
+
+        }
+
+    }
+
+    juce::Path randomPath;
+};
 
 
 /**
