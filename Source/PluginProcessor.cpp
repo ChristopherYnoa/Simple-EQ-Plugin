@@ -185,10 +185,10 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     juce::dsp::AudioBlock<float> block(buffer);
     
     //generates audio from oscillator for testing
-    buffer.clear();
+    /*buffer.clear();
 
     juce::dsp::ProcessContextReplacing<float> stereoContext(block);
-    osc.process(stereoContext);
+    osc.process(stereoContext);*/
 
     auto leftBlock = block.getSingleChannelBlock(0);
     auto rightBlock = block.getSingleChannelBlock(1);
